@@ -41,6 +41,8 @@ only connect on launch.
 - `workspaces` — workspaces you belong to
 - `my_tasks` — projects (with client) you're a member of, and each project's
   active tasks, across all workspaces
+- `log_time` — log a completed time entry against a project/task (matched by
+  name from `my_tasks`), given a start and end timestamp
 
 ## Updating
 
