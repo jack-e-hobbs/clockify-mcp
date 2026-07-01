@@ -11,8 +11,7 @@ cd clockify-mcp
 pip3 install -r requirements.txt
 ```
 
-Get your personal API key from https://app.clockify.me/user/settings (API
-section, bottom of the page). This is tied to your Clockify login — don't
+Get your personal API key from https://app.clockify.me/manage-api-keys . This is tied to your Clockify login — don't
 share it, and don't commit it anywhere.
 
 ## Add to Claude desktop (Cowork)
