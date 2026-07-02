@@ -5,6 +5,7 @@ Auth: CLOCKIFY_API_KEY env var (set via the MCP server's `env` config).
 """
 import json
 import os
+import urllib.parse
 import urllib.request
 
 from mcp.server.fastmcp import FastMCP
@@ -71,11 +72,32 @@ def my_tasks() -> list[dict]:
 
 
 @mcp.tool()
-def log_time(project: str, task: str, start: str, end: str, description: str = "") -> dict:
-    """Log a fixed (already-completed) time entry against a project/task.
+def list_projects() -> list[dict]:
+    """List every project (with client and tasks) in each workspace, regardless of membership.
 
-    project/task match case-insensitively by substring against your
-    my_tasks() results — use the exact names from there to avoid ambiguity.
+    Unlike my_tasks(), this includes internal/non-client projects and projects
+    with no tasks — use it to find loggable targets my_tasks() doesn't surface.
+    """
+    result = []
+    for ws in _get("/workspaces"):
+        for p in _get(f"/workspaces/{ws['id']}/projects?page-size=200"):
+            tasks = _get(f"/workspaces/{ws['id']}/projects/{p['id']}/tasks?page-size=200")
+            result.append({
+                "workspace": ws["name"],
+                "project": p["name"],
+                "client": p.get("clientName") or None,
+                "tasks": [t["name"] for t in tasks if t["status"] == "ACTIVE"],
+            })
+    return result
+
+
+@mcp.tool()
+def log_time(project: str, start: str, end: str, task: str = "", description: str = "") -> dict:
+    """Log a fixed (already-completed) time entry against a project (and optional task).
+
+    project/task match case-insensitively by substring against list_projects()
+    results — use exact names to avoid ambiguity. Leave task empty for projects
+    with no Clockify tasks (e.g. internal/non-billable projects).
     start/end are ISO-8601 UTC timestamps, e.g. "2026-07-01T09:00:00Z".
     Billable/non-billable is inherited from the project's own setting.
     """
@@ -83,17 +105,52 @@ def log_time(project: str, task: str, start: str, end: str, description: str = "
         for p in _get(f"/workspaces/{ws['id']}/projects?page-size=200"):
             if project.lower() not in p["name"].lower():
                 continue
-            for t in _get(f"/workspaces/{ws['id']}/projects/{p['id']}/tasks?page-size=200"):
-                if task.lower() in t["name"].lower():
-                    entry = _post(f"/workspaces/{ws['id']}/time-entries", {
-                        "start": start,
-                        "end": end,
-                        "projectId": p["id"],
-                        "taskId": t["id"],
-                        "description": description,
-                    })
-                    return {"logged": True, "project": p["name"], "task": t["name"], "id": entry["id"]}
-    raise ValueError(f"No project/task match for project={project!r}, task={task!r} — check my_tasks() for exact names")
+            body = {"start": start, "end": end, "projectId": p["id"], "description": description}
+            matched_task = None
+            if task:
+                for t in _get(f"/workspaces/{ws['id']}/projects/{p['id']}/tasks?page-size=200"):
+                    if task.lower() in t["name"].lower():
+                        body["taskId"] = t["id"]
+                        matched_task = t["name"]
+                        break
+                if matched_task is None:
+                    raise ValueError(f"Project {p['name']!r} matched but no task matches {task!r} — check list_projects()")
+            entry = _post(f"/workspaces/{ws['id']}/time-entries", body)
+            return {"logged": True, "project": p["name"], "task": matched_task, "id": entry["id"]}
+    raise ValueError(f"No project match for project={project!r} — check list_projects() for exact names")
+
+
+@mcp.tool()
+def list_time_entries(start: str = "", end: str = "", page_size: int = 50) -> list[dict]:
+    """List my already-logged time entries across all workspaces, newest first.
+
+    start/end are optional ISO-8601 UTC bounds, e.g. "2026-07-01T00:00:00Z";
+    omit for the most recent entries. page_size caps results per workspace.
+    """
+    user_id = _get("/user")["id"]
+    result = []
+    for ws in _get("/workspaces"):
+        # cache project id->name so we can label entries without extra lookups
+        projects = {p["id"]: p for p in _get(f"/workspaces/{ws['id']}/projects?page-size=200")}
+        params = {"page-size": page_size}
+        if start:
+            params["start"] = start
+        if end:
+            params["end"] = end
+        qs = urllib.parse.urlencode(params)
+        for e in _get(f"/workspaces/{ws['id']}/user/{user_id}/time-entries?{qs}"):
+            p = projects.get(e.get("projectId"))
+            result.append({
+                "workspace": ws["name"],
+                "project": p["name"] if p else None,
+                "client": (p.get("clientName") or None) if p else None,
+                "description": e.get("description"),
+                "start": e["timeInterval"]["start"],
+                "end": e["timeInterval"]["end"],
+                "duration": e["timeInterval"]["duration"],
+                "id": e["id"],
+            })
+    return result
 
 
 if __name__ == "__main__":

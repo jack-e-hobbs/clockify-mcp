@@ -40,8 +40,13 @@ only connect on launch.
 - `workspaces` — workspaces you belong to
 - `my_tasks` — projects (with client) you're a member of, and each project's
   active tasks, across all workspaces
-- `log_time` — log a completed time entry against a project/task (matched by
-  name from `my_tasks`), given a start and end timestamp
+- `list_projects` — every project (with client and tasks) across all
+  workspaces, regardless of membership; surfaces internal/non-client projects
+  `my_tasks` hides
+- `log_time` — log a completed time entry against a project (task optional),
+  given a start and end timestamp; matched by name from `list_projects`
+- `list_time_entries` — your already-logged entries, newest first, with
+  optional ISO start/end bounds
 
 ## Updating
 
