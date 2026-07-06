@@ -36,14 +36,34 @@ only connect on launch.
 
 ## Add to Claude (hosted, no install)
 
-If you were given a hosted URL for this server, skip the setup above — add
-this instead under `mcpServers`:
+If you were given a hosted URL for this server, skip the setup above.
+
+Claude Code / Claude in Cowork support the URL directly:
 
 ```json
 "clockify": {
+  "type": "http",
   "url": "<hosted URL — ask Jack>",
   "headers": {
     "X-Clockify-Key": "your-key-here"
+  }
+}
+```
+
+Claude Desktop needs the `mcp-remote` bridge instead (it doesn't support
+remote servers natively):
+
+```json
+"clockify": {
+  "command": "npx",
+  "args": [
+    "mcp-remote@latest",
+    "<hosted URL — ask Jack>",
+    "--header",
+    "X-Clockify-Key:${CLOCKIFY_API_KEY}"
+  ],
+  "env": {
+    "CLOCKIFY_API_KEY": "your-key-here"
   }
 }
 ```
