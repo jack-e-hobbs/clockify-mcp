@@ -34,6 +34,23 @@ Use the full path to your `python3` (`which python3`) and to `server.py`.
 Restart Claude desktop fully (quit, not just close the window) — MCP servers
 only connect on launch.
 
+## Add to Claude (hosted, no install)
+
+If you were given a hosted URL for this server, skip the setup above — add
+this instead under `mcpServers`:
+
+```json
+"clockify": {
+  "url": "<hosted URL — ask Jack>",
+  "headers": {
+    "X-Clockify-Key": "your-key-here"
+  }
+}
+```
+
+Get your own key from https://app.clockify.me/manage-api-keys the same way —
+each person uses their own, never share one.
+
 ## Tools
 
 - `whoami` — your Clockify id, name, email
