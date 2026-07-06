@@ -74,6 +74,8 @@ def _delete(ctx, path):
     except urllib.error.HTTPError as e:
         if e.code == 404:
             return False
+        if e.code == 403:
+            raise ValueError("Your API key can't delete this entry — you likely don't own it and lack admin rights")
         raise
 
 
@@ -281,7 +283,12 @@ def update_time_entry(ctx: Context, entry_id: str, start: str = "", end: str = "
         raise ValueError(
             f"start {body['start']} is not before end {body['end']} — pass both start and end when rescheduling")
 
-    entry = _put(ctx, f"/workspaces/{ws_id}/time-entries/{entry_id}", body)
+    try:
+        entry = _put(ctx, f"/workspaces/{ws_id}/time-entries/{entry_id}", body)
+    except urllib.error.HTTPError as e:
+        if e.code == 403:
+            raise ValueError("Your API key can't edit this entry — you likely don't own it and lack admin rights")
+        raise
     return {"updated": True, "id": entry["id"], "start": entry["timeInterval"]["start"],
             "end": entry["timeInterval"]["end"], "description": entry.get("description")}
 
@@ -312,7 +319,13 @@ def list_users(ctx: Context, workspace: str = "") -> list[dict]:
     for ws in _get(ctx, "/workspaces"):
         if workspace and workspace.lower() not in ws["name"].lower():
             continue
-        for u in _get(ctx, f"/workspaces/{ws['id']}/users?page-size=200"):
+        try:
+            users = _get(ctx, f"/workspaces/{ws['id']}/users?page-size=200")
+        except urllib.error.HTTPError as e:
+            if e.code == 403:
+                raise ValueError(f"Your API key lacks admin/manager rights in {ws['name']!r} — list_users needs that to see other members")
+            raise
+        for u in users:
             result.append({
                 "workspace": ws["name"],
                 "id": u["id"],
