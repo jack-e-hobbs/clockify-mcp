@@ -64,6 +64,11 @@ each person uses their own, never share one.
   given a start and end timestamp; matched by name from `list_projects`
 - `list_time_entries` — your already-logged entries, newest first, with
   optional ISO start/end bounds
+- `update_time_entry` — edit an existing entry's time/description/project/task
+- `delete_time_entry` — delete an entry by id
+- `list_users` — workspace members (admin view)
+- `summary_report` — company-wide tracked/billable hours and $, grouped by
+  project/user/client/task (admin view, paid plans)
 
 ## Updating
 
