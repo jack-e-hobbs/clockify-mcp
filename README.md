@@ -98,3 +98,7 @@ pip3 install -r requirements.txt  # only needed if requirements.txt changed
 ```
 
 Then restart Claude desktop.
+
+---
+
+Built by [Jack Hobbs](https://jackhobbs.dev), digital analytics and martech consultant.
